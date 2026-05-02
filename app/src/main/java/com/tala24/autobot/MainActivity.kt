@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         if (savedChatId.isNotEmpty()) edtChatId.setText(savedChatId)
         edtInterval.setText(savedInterval.toString())
 
-        txtStatus.text = "وضعیت: تنظیمات بارگذاری شد"
+        txtStatus.text = "Status: Settings loaded"
 
         btnSaveSettings.setOnClickListener {
             val token = edtToken.text.toString().trim()
@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
             val intervalText = edtInterval.text.toString().trim()
 
             if (token.isEmpty() || chatId.isEmpty() || intervalText.isEmpty()) {
-                txtStatus.text = "وضعیت: لطفاً همه فیلدها را پر کنید"
+                txtStatus.text = "Status: Please fill all fields"
                 return@setOnClickListener
             }
 
@@ -78,7 +78,7 @@ class MainActivity : AppCompatActivity() {
                 .apply()
 
             Log.d(TAG, "Settings saved: token=${token.take(5)}..., chatId=$chatId, interval=$intervalMin")
-            txtStatus.text = "وضعیت: تنظیمات ذخیره شد"
+            txtStatus.text = "Status: Settings saved"
         }
 
         btnSendOnce.setOnClickListener {
@@ -100,11 +100,11 @@ class MainActivity : AppCompatActivity() {
         val chatId = prefs.getString(KEY_CHAT_ID, "") ?: ""
 
         if (token.isEmpty() || chatId.isEmpty()) {
-            txtStatus.text = "وضعیت: ابتدا توکن و Chat ID را ذخیره کنید"
+            txtStatus.text = "Status: Please save token and Chat ID first"
             return
         }
 
-        txtStatus.text = "وضعیت: در حال استخراج قیمت و ارسال..."
+        txtStatus.text = "Status: Fetching prices and sending..."
         Log.d(TAG, "Manual sendOnce triggered")
 
         uiScope.launch(Dispatchers.IO) {
@@ -115,11 +115,11 @@ class MainActivity : AppCompatActivity() {
 
             withContext(Dispatchers.Main) {
                 if (ok) {
-                    txtStatus.text = "وضعیت: پیام ارسال شد"
+                    txtStatus.text = "Status: Message sent"
                     txtLastMessage.text = pricesText
                     Log.d(TAG, "Manual sendOnce success")
                 } else {
-                    txtStatus.text = "وضعیت: خطا در ارسال پیام"
+                    txtStatus.text = "Status: Error sending message"
                     Log.e(TAG, "Manual sendOnce failed")
                 }
             }
@@ -128,7 +128,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun startAuto() {
         if (autoJob != null) {
-            txtStatus.text = "وضعیت: ارسال خودکار از قبل فعال است"
+            txtStatus.text = "Status: Auto sending is already active"
             return
         }
 
@@ -138,11 +138,11 @@ class MainActivity : AppCompatActivity() {
         val chatId = prefs.getString(KEY_CHAT_ID, "") ?: ""
 
         if (token.isEmpty() || chatId.isEmpty()) {
-            txtStatus.text = "وضعیت: ابتدا تنظیمات را کامل کنید"
+            txtStatus.text = "Status: Please complete settings first"
             return
         }
 
-        txtStatus.text = "وضعیت: ارسال خودکار هر $intervalMin دقیقه فعال شد"
+        txtStatus.text = "Status: Auto sending enabled every $intervalMin minutes"
         Log.d(TAG, "Auto sending started, interval=$intervalMin min")
 
         autoJob = uiScope.launch(Dispatchers.IO) {
@@ -155,7 +155,7 @@ class MainActivity : AppCompatActivity() {
 
                 if (currentToken.isEmpty() || currentChatId.isEmpty()) {
                     withContext(Dispatchers.Main) {
-                        txtStatus.text = "وضعیت: تنظیمات ناقص است، ارسال خودکار متوقف شد"
+                        txtStatus.text = "Status: Settings incomplete, auto sending stopped"
                     }
                     Log.e(TAG, "Auto send stopped due to missing settings")
                     break
@@ -167,11 +167,11 @@ class MainActivity : AppCompatActivity() {
 
                 withContext(Dispatchers.Main) {
                     if (ok) {
-                        txtStatus.text = "وضعیت: پیام خودکار ارسال شد"
+                        txtStatus.text = "Status: Auto message sent"
                         txtLastMessage.text = pricesText
                         Log.d(TAG, "Auto send success")
                     } else {
-                        txtStatus.text = "وضعیت: خطا در ارسال خودکار"
+                        txtStatus.text = "Status: Error in auto sending"
                         Log.e(TAG, "Auto send failed")
                     }
                 }
@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity() {
     private fun stopAuto() {
         autoJob?.cancel()
         autoJob = null
-        txtStatus.text = "وضعیت: ارسال خودکار متوقف شد"
+        txtStatus.text = "Status: Auto sending stopped"
         Log.d(TAG, "Auto sending stopped by user")
     }
 
