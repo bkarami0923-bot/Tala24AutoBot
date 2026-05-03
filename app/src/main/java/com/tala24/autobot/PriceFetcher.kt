@@ -125,19 +125,15 @@ class PriceFetcher {
 
     // ------------------ Fetch Functions ------------------
 
-    // دلار تهران — Nobitex (جدید)
     private fun fetchUsdTehran(): Long? {
         val url = "https://nobitex.ir/price/usdt/"
         val html = fetchHtml(url) ?: return null
 
         return try {
             val doc = Jsoup.parse(html)
-
-            // پیدا کردن بخش "قیمت تتر"
             val title = doc.selectFirst("h1.text-headline-medium")?.text()?.trim()
             if (title?.contains("قیمت تتر") != true) return null
 
-            // مقدار قیمت
             val priceSpan = doc.selectFirst("span.text-body-large")?.text()?.trim()
                 ?: return null
 
@@ -152,7 +148,6 @@ class PriceFetcher {
         }
     }
 
-    // انس طلا — estjt.ir (ساختار جدید)
     private fun fetchOunce(): Long? {
         val url = "https://www.estjt.ir/"
         val html = fetchHtml(url) ?: return null
@@ -185,7 +180,6 @@ class PriceFetcher {
         }
     }
 
-    // نفت برنت — سروتمندی
     private fun fetchBrent(): Long? {
         val url = "https://servatmandi.com/Entity/Summary/10000000002001"
         val html = fetchHtml(url) ?: return null
@@ -219,7 +213,6 @@ class PriceFetcher {
         }
     }
 
-    // طلا و سکه‌ها — estjt.ir
     private fun fetchFromEstjt(nameText: String): Long? {
         val html = fetchHtml("https://www.estjt.ir/") ?: return null
 
@@ -251,7 +244,6 @@ class PriceFetcher {
     private fun fetchCoinQuarter() = fetchFromEstjt("ربع سکه")
     private fun fetchCoinGerami() = fetchFromEstjt("سکه گرمی")
 
-    // نقره — Wallex
     private fun fetchSilver(): Long? {
         val url = "https://wallex.ir/silver"
         val html = fetchHtml(url) ?: return null
@@ -264,6 +256,13 @@ class PriceFetcher {
             Log.e(TAG, "fetchSilver error: ${e.message}")
             null
         }
+    }
+
+    // ------------------ NEW: Round to thousands ------------------
+
+    private fun roundToThousands(v: Long?): Long? {
+        if (v == null) return null
+        return (v / 1000) * 1000
     }
 
     // ------------------ Collect All ------------------
@@ -290,13 +289,17 @@ class PriceFetcher {
         val p = getAllPrices()
         val (jDate, jTime) = getJalaliDateAndTime()
 
+        // Apply rounding ONLY to usdTehran and silver
+        val usdRounded = roundToThousands(p.usdTehran)
+        val silverRounded = roundToThousands(p.silver)
+
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
         return """
 🗓 $jDate
 ⏰ $jTime
 ━━━━━━━━━━━━━━━━━━━━━
-💵 دلار تهران : <b>${formatPrice(p.usdTehran)}</b> تومان
+💵 دلار تهران : <b>${formatPrice(usdRounded)}</b> تومان
 ━━━━━━━━━━━━━━━━━━━━━
 💰 انس : <b>${formatPrice(p.ounce)}</b> $
 
@@ -316,7 +319,7 @@ class PriceFetcher {
 
 🔶 سکه گرمی : <b>${formatPrice(p.coinGerami)}</b> تومان
 ━━━━━━━━━━━━━━━━━━━━━
-⚪ نقره : <b>${formatPrice(p.silver)}</b> تومان
+⚪ نقره : <b>${formatPrice(silverRounded)}</b> تومان
 
 📊 @Tala24_B
         """.trimIndent()
