@@ -258,11 +258,11 @@ class PriceFetcher {
         }
     }
 
-    // ------------------ NEW: Round to thousands ------------------
+    // ------------------ NEW: Round last digit to zero ------------------
 
-    private fun roundToThousands(v: Long?): Long? {
+    private fun roundToTens(v: Long?): Long? {
         if (v == null) return null
-        return (v / 1000) * 1000
+        return (v / 10) * 10
     }
 
     // ------------------ Collect All ------------------
@@ -290,8 +290,8 @@ class PriceFetcher {
         val (jDate, jTime) = getJalaliDateAndTime()
 
         // Apply rounding ONLY to usdTehran and silver
-        val usdRounded = roundToThousands(p.usdTehran)
-        val silverRounded = roundToThousands(p.silver)
+        val usdRounded = roundToTens(p.usdTehran)
+        val silverRounded = roundToTens(p.silver)
 
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
