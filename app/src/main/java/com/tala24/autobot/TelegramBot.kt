@@ -4,8 +4,6 @@ import android.util.Log
 import okhttp3.FormBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.net.InetSocketAddress
-import java.net.Proxy
 
 class TelegramBot(
     private val token: String,
@@ -14,9 +12,8 @@ class TelegramBot(
 
     private val TAG = "Tala24-TelegramBot"
 
-    // کلاینت مخصوص تلگرام با پروکسی داخلی (SOCKS5 روی 127.0.0.1:10808)
+    // کلاینت تلگرام بدون پروکسی (اتصال مستقیم)
     private val telegramClient: OkHttpClient = OkHttpClient.Builder()
-        .proxy(Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", 10808)))
         .build()
 
     fun sendMessage(text: String): Boolean {
