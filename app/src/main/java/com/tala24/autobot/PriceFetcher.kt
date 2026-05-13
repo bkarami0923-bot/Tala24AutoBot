@@ -296,6 +296,7 @@ class PriceFetcher {
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
         return """
+©       
 🗓 $jDate
 ⏰ $jTime
 ━━━━━━━━━━━━━━━━━━━━━
@@ -321,7 +322,7 @@ class PriceFetcher {
 ━━━━━━━━━━━━━━━━━━━━━
 ⚪ نقره : <b>${formatPrice(silverRounded)}</b> تومان
 
-📊 @Tala24_B
+🫆 @Tala24_B
         """.trimIndent()
     }
 }
