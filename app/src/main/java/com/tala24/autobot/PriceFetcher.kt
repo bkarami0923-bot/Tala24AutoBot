@@ -191,7 +191,7 @@ class PriceFetcher {
             var price: String? = null
 
             for (th in ths) {
-                if (th.text().trim() == "آخرین") {
+                if (th.text().trim() == "آخرین قیمت") {
                     val td = th.parent()?.selectFirst("td#Close")
                     price = td?.text()
                     break
