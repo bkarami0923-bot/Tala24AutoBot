@@ -237,7 +237,10 @@ class PriceFetcher {
     }
 
     private fun fetchGold18() = fetchFromEstjt("طلا ۱۸ عیار")
-    private fun fetchGold24() = fetchFromEstjt("طلای ۲۴ عیار")
+
+    // ❌ دیگر از سایت نمی‌خوانیم
+    private fun fetchGold24(): Long? = null
+
     private fun fetchCoinImami() = fetchFromEstjt("سکه طرح جدید")
     private fun fetchCoinBahar() = fetchFromEstjt("سکه طرح قدیم")
     private fun fetchCoinHalf() = fetchFromEstjt("نیم سکه")
@@ -268,12 +271,20 @@ class PriceFetcher {
     // ------------------ Collect All ------------------
 
     private fun getAllPrices(): Prices {
+
+        val g18 = fetchGold18()
+
+        // ⭐ محاسبه طلای ۲۴ از روی ۱۸
+        val g24 = if (g18 != null) {
+            (g18 * 1.33332221).toLong()
+        } else null
+
         return Prices(
             usdTehran = fetchUsdTehran(),
             ounce = fetchOunce(),
             brent = fetchBrent(),
-            gold18 = fetchGold18(),
-            gold24 = fetchGold24(),
+            gold18 = g18,
+            gold24 = g24,
             coinImami = fetchCoinImami(),
             coinBahar = fetchCoinBahar(),
             coinHalf = fetchCoinHalf(),
@@ -289,7 +300,6 @@ class PriceFetcher {
         val p = getAllPrices()
         val (jDate, jTime) = getJalaliDateAndTime()
 
-        // Apply rounding ONLY to usdTehran and silver
         val usdRounded = roundToTens(p.usdTehran)
         val silverRounded = roundToTens(p.silver)
 
