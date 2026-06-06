@@ -168,7 +168,7 @@ class PriceFetcher {
                             .replace(" ", "")
                             .trim()
 
-                        return cleaned.toLongOrNull()
+                        return cleaned.toLongOrNull()   // انس تقسیم بر ۱۰ نمی‌شود
                     }
                 }
             }
@@ -225,7 +225,7 @@ class PriceFetcher {
                 val price = row.selectFirst("td.price")?.text()
 
                 if (name == nameText) {
-                    return parsePriceToLong(price)
+                    return parsePriceToLong(price)?.div(10)   // تقسیم بر ۱۰
                 }
             }
 
@@ -238,8 +238,7 @@ class PriceFetcher {
 
     private fun fetchGold18() = fetchFromEstjt("طلا ۱۸ عیار")
 
-    // ❌ دیگر از سایت نمی‌خوانیم
-    private fun fetchGold24(): Long? = null
+    private fun fetchGold24(): Long? = null   // دیگر از سایت نمی‌خوانیم
 
     private fun fetchCoinImami() = fetchFromEstjt("سکه طرح جدید")
     private fun fetchCoinBahar() = fetchFromEstjt("سکه طرح قدیم")
@@ -254,18 +253,13 @@ class PriceFetcher {
         return try {
             val doc = Jsoup.parse(html)
             val span = doc.selectFirst("span.MuiTypography-root.MuiTypography-TitleStrong.mui-17xixml")
-            parsePriceToLong(span?.text())
+            val raw = parsePriceToLong(span?.text())
+
+            raw?.let { (it / 100) * 100 }   // دو رقم آخر صفر
         } catch (e: Exception) {
             Log.e(TAG, "fetchSilver error: ${e.message}")
             null
         }
-    }
-
-    // ------------------ NEW: Round last digit to zero ------------------
-
-    private fun roundToTens(v: Long?): Long? {
-        if (v == null) return null
-        return (v / 10) * 10
     }
 
     // ------------------ Collect All ------------------
@@ -274,9 +268,10 @@ class PriceFetcher {
 
         val g18 = fetchGold18()
 
-        // ⭐ محاسبه طلای ۲۴ از روی ۱۸
+        // طلای ۲۴ = طلای ۱۸ × ضریب → سپس سه رقم آخر صفر
         val g24 = if (g18 != null) {
-            (g18 * 1.33332221).toLong()
+            val calc = (g18 * 1.33332221).toLong()
+            (calc / 1000) * 1000
         } else null
 
         return Prices(
@@ -300,9 +295,8 @@ class PriceFetcher {
         val p = getAllPrices()
         val (jDate, jTime) = getJalaliDateAndTime()
 
-        val usdRounded = roundToTens(p.usdTehran)
-        val silverRounded = roundToTens(p.silver)
-
+        val usdRounded = p.usdTehran?.let { (it / 10) * 10 }
+        val silverRounded = p.silver   // قبلاً صفر شده
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
         return """
