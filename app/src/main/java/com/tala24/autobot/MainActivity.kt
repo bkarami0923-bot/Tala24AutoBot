@@ -16,7 +16,8 @@ class MainActivity : AppCompatActivity() {
         const val PREFS_NAME = "tala24_prefs"
         const val KEY_BOT_TOKEN = "bot_token"
         const val KEY_CHAT_ID = "chat_id"
-        const val KEY_SEND_TIME = "send_time"   // ⬅️ جدید
+        const val KEY_HOUR = "send_hour"
+        const val KEY_MINUTE = "send_minute"
     }
 
     private val TAG = "Tala24"
@@ -25,11 +26,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtLastMessage: TextView
     private lateinit var edtToken: EditText
     private lateinit var edtChatId: EditText
-    private lateinit var edtSendTime: EditText   // ⬅️ تغییر نام
+    private lateinit var edtHour: EditText
+    private lateinit var edtMinute: EditText
     private lateinit var btnSaveSettings: Button
     private lateinit var btnSendOnce: Button
     private lateinit var btnStartAuto: Button
-    private lateinit var btnStopAuto: Button
 
     private val uiScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var autoJob: Job? = null
@@ -42,30 +43,28 @@ class MainActivity : AppCompatActivity() {
         txtLastMessage = findViewById(R.id.txtLastMessage)
         edtToken = findViewById(R.id.edtToken)
         edtChatId = findViewById(R.id.edtChatId)
-        edtSendTime = findViewById(R.id.edtInterval)   // همان فیلد قبلی، فقط کاربرد جدید
+        edtHour = findViewById(R.id.edtHour)
+        edtMinute = findViewById(R.id.edtMinute)
         btnSaveSettings = findViewById(R.id.btnSaveSettings)
         btnSendOnce = findViewById(R.id.btnSendOnce)
         btnStartAuto = findViewById(R.id.btnStartAuto)
-        btnStopAuto = findViewById(R.id.btnStopAuto)
 
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-        val savedToken = prefs.getString(KEY_BOT_TOKEN, "") ?: ""
-        val savedChatId = prefs.getString(KEY_CHAT_ID, "") ?: ""
-        val savedSendTime = prefs.getString(KEY_SEND_TIME, "12:00") ?: "12:00"
-
-        if (savedToken.isNotEmpty()) edtToken.setText(savedToken)
-        if (savedChatId.isNotEmpty()) edtChatId.setText(savedChatId)
-        edtSendTime.setText(savedSendTime)
+        edtToken.setText(prefs.getString(KEY_BOT_TOKEN, ""))
+        edtChatId.setText(prefs.getString(KEY_CHAT_ID, ""))
+        edtHour.setText(prefs.getInt(KEY_HOUR, 12).toString())
+        edtMinute.setText(prefs.getInt(KEY_MINUTE, 0).toString())
 
         txtStatus.text = "Status: Settings loaded"
 
         btnSaveSettings.setOnClickListener {
             val token = edtToken.text.toString().trim()
             val chatId = edtChatId.text.toString().trim()
-            val sendTime = edtSendTime.text.toString().trim()   // ⬅️ ساعت
+            val hour = edtHour.text.toString().trim().toIntOrNull()
+            val minute = edtMinute.text.toString().trim().toIntOrNull()
 
-            if (token.isEmpty() || chatId.isEmpty() || sendTime.isEmpty()) {
+            if (token.isEmpty() || chatId.isEmpty() || hour == null || minute == null) {
                 txtStatus.text = "Status: Please fill all fields"
                 return@setOnClickListener
             }
@@ -73,16 +72,15 @@ class MainActivity : AppCompatActivity() {
             prefs.edit()
                 .putString(KEY_BOT_TOKEN, token)
                 .putString(KEY_CHAT_ID, chatId)
-                .putString(KEY_SEND_TIME, sendTime)
+                .putInt(KEY_HOUR, hour)
+                .putInt(KEY_MINUTE, minute)
                 .apply()
 
-            Log.d(TAG, "Settings saved: token=${token.take(5)}..., chatId=$chatId, time=$sendTime")
             txtStatus.text = "Status: Settings saved"
         }
 
         btnSendOnce.setOnClickListener { sendOnce() }
         btnStartAuto.setOnClickListener { startAuto() }
-        btnStopAuto.setOnClickListener { stopAuto() }
     }
 
     private fun sendOnce() {
@@ -96,7 +94,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         txtStatus.text = "Status: Fetching prices and sending..."
-        Log.d(TAG, "Manual sendOnce triggered")
 
         uiScope.launch(Dispatchers.IO) {
             val fetcher = PriceFetcher()
@@ -117,34 +114,31 @@ class MainActivity : AppCompatActivity() {
 
     private fun startAuto() {
         if (autoJob != null) {
-            txtStatus.text = "Status: Auto sending is already active"
+            txtStatus.text = "Status: Auto sending already active"
             return
         }
 
         val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val token = prefs.getString(KEY_BOT_TOKEN, "") ?: ""
         val chatId = prefs.getString(KEY_CHAT_ID, "") ?: ""
-        val sendTime = prefs.getString(KEY_SEND_TIME, "12:00") ?: "12:00"
+        val hour = prefs.getInt(KEY_HOUR, 12)
+        val minute = prefs.getInt(KEY_MINUTE, 0)
 
         if (token.isEmpty() || chatId.isEmpty()) {
             txtStatus.text = "Status: Please complete settings first"
             return
         }
 
-        txtStatus.text = "Status: Auto sending enabled at $sendTime daily"
-        Log.d(TAG, "Auto sending started, time=$sendTime")
+        txtStatus.text = "Status: Will send daily at %02d:%02d".format(hour, minute)
 
         autoJob = uiScope.launch(Dispatchers.IO) {
             val fetcher = PriceFetcher()
 
             while (isActive) {
-
-                val (targetHour, targetMin) = sendTime.split(":").map { it.toInt() }
-
                 val now = Calendar.getInstance()
                 val target = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, targetHour)
-                    set(Calendar.MINUTE, targetMin)
+                    set(Calendar.HOUR_OF_DAY, hour)
+                    set(Calendar.MINUTE, minute)
                     set(Calendar.SECOND, 0)
                 }
 
@@ -157,26 +151,16 @@ class MainActivity : AppCompatActivity() {
 
                 val pricesText = fetcher.getPricesText()
                 val bot = TelegramBot(token, chatId)
-                val ok = bot.sendMessage(pricesText)
+                bot.sendMessage(pricesText)
 
                 withContext(Dispatchers.Main) {
-                    if (ok) {
-                        txtStatus.text = "Status: Auto message sent"
-                        txtLastMessage.text = pricesText
-                    } else {
-                        txtStatus.text = "Status: Error in auto sending"
-                    }
+                    txtStatus.text = "Status: Auto message sent"
+                    txtLastMessage.text = pricesText
                 }
 
                 delay(24 * 60 * 60 * 1000L)
             }
         }
-    }
-
-    private fun stopAuto() {
-        autoJob?.cancel()
-        autoJob = null
-        txtStatus.text = "Status: Auto sending stopped"
     }
 
     override fun onDestroy() {
