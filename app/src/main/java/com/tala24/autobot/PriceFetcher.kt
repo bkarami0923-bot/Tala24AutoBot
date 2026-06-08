@@ -14,8 +14,6 @@ class PriceFetcher {
     private val iranClient: OkHttpClient = OkHttpClient.Builder().build()
     private val df = DecimalFormat("#,###")
 
-    // ------------------ HTML Fetch ------------------
-
     private fun fetchHtml(url: String): String? {
         return try {
             val req = Request.Builder()
@@ -34,8 +32,6 @@ class PriceFetcher {
             null
         }
     }
-
-    // ------------------ Helpers ------------------
 
     private fun normalizeDigits(s0: String): String {
         var s = s0
@@ -69,8 +65,6 @@ class PriceFetcher {
         if (v == null) return "—"
         return df.format(v)
     }
-
-    // ------------------ تاریخ شمسی ------------------
 
     private fun gregorianToJalali(gy: Int, gm: Int, gd: Int): Triple<Int, Int, Int> {
         val gdm = intArrayOf(0,31,59,90,120,151,181,212,243,273,304,334)
@@ -107,8 +101,6 @@ class PriceFetcher {
         return Pair(date, time)
     }
 
-    // ------------------ Data Class ------------------
-
     data class Prices(
         val usdTehran: Long?,
         val ounce: Long?,
@@ -122,8 +114,6 @@ class PriceFetcher {
         val coinGerami: Long?,
         val silver: Long?
     )
-
-    // ------------------ Fetch Functions ------------------
 
     private fun fetchUsdTehran(): Long? {
         val url = "https://nobitex.ir/price/usdt/"
@@ -168,7 +158,7 @@ class PriceFetcher {
                             .replace(" ", "")
                             .trim()
 
-                        return cleaned.toLongOrNull()   // انس تقسیم بر ۱۰ نمی‌شود
+                        return cleaned.toLongOrNull()
                     }
                 }
             }
@@ -225,7 +215,7 @@ class PriceFetcher {
                 val price = row.selectFirst("td.price")?.text()
 
                 if (name == nameText) {
-                    return parsePriceToLong(price)?.div(10)   // تقسیم بر ۱۰
+                    return parsePriceToLong(price)   // دیگر تقسیم بر ۱۰ نمی‌شود
                 }
             }
 
@@ -238,7 +228,7 @@ class PriceFetcher {
 
     private fun fetchGold18() = fetchFromEstjt("طلا ۱۸ عیار")
 
-    private fun fetchGold24(): Long? = null   // دیگر از سایت نمی‌خوانیم
+    private fun fetchGold24(): Long? = null
 
     private fun fetchCoinImami() = fetchFromEstjt("سکه طرح جدید")
     private fun fetchCoinBahar() = fetchFromEstjt("سکه طرح قدیم")
@@ -262,17 +252,15 @@ class PriceFetcher {
         }
     }
 
-    // ------------------ Collect All ------------------
-
     private fun getAllPrices(): Prices {
 
-        val g18 = fetchGold18()
+        val g18raw = fetchGold18()
+        val g18 = g18raw?.let { (it / 1000) * 1000 }   // سه رقم آخر صفر
 
-        // طلای ۲۴ = طلای ۱۸ × ضریب → سپس سه رقم آخر صفر
-        val g24 = if (g18 != null) {
-            val calc = (g18 * 1.33332221).toLong()
-            (calc / 1000) * 1000
-        } else null
+        val g24 = g18raw?.let {
+            val calc = (it * 1.33332221).toLong()
+            (calc / 1000) * 1000   // سه رقم آخر صفر
+        }
 
         return Prices(
             usdTehran = fetchUsdTehran(),
@@ -289,14 +277,12 @@ class PriceFetcher {
         )
     }
 
-    // ------------------ Final Output ------------------
-
     fun getPricesText(): String {
         val p = getAllPrices()
         val (jDate, jTime) = getJalaliDateAndTime()
 
-        val usdRounded = p.usdTehran?.let { (it / 10) * 10 }
-        val silverRounded = p.silver   // قبلاً صفر شده
+        val usdRounded = p.usdTehran?.let { (it / 100) * 100 }
+        val silverRounded = p.silver
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
         return """
