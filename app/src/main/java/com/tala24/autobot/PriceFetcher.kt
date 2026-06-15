@@ -115,9 +115,6 @@ class PriceFetcher {
         val silver: Long?
     )
 
-    // ───────────────────────────────────────────────
-    // ✔️ نسخه جدید: دریافت دلار تهران از سروتمندی
-    // ───────────────────────────────────────────────
     private fun fetchUsdTehran(): Long? {
         val url = "https://servatmandi.com/Entity/Summary/100000000001"
         val html = fetchHtml(url) ?: return null
@@ -142,7 +139,7 @@ class PriceFetcher {
                 .replace(",", "")
                 .trim()
 
-            cleaned.toLongOrNull()   // قیمت سروتمندی = تومان
+            cleaned.toLongOrNull()
         } catch (e: Exception) {
             Log.e(TAG, "fetchUsdTehran error: ${e.message}")
             null
@@ -292,7 +289,11 @@ class PriceFetcher {
         val p = getAllPrices()
         val (jDate, jTime) = getJalaliDateAndTime()
 
-        val usdRounded = p.usdTehran?.let { (it / 100) * 100 }
+        // ───────────────────────────────────────────────
+        // ✔️ دلار تهران تقسیم بر ۱۰ + رند دو رقم آخر
+        // ───────────────────────────────────────────────
+        val usdRounded = p.usdTehran?.let { ((it / 10) / 100) * 100 }
+
         val silverRounded = p.silver
         val brentStr = p.brent?.let { String.format("%,.2f", it.toDouble() / 100) } ?: "—"
 
