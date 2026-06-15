@@ -115,23 +115,34 @@ class PriceFetcher {
         val silver: Long?
     )
 
+    // ───────────────────────────────────────────────
+    // ✔️ نسخه جدید: دریافت دلار تهران از سروتمندی
+    // ───────────────────────────────────────────────
     private fun fetchUsdTehran(): Long? {
-        val url = "https://nobitex.ir/price/usdt/"
+        val url = "https://servatmandi.com/Entity/Summary/100000000001"
         val html = fetchHtml(url) ?: return null
 
         return try {
             val doc = Jsoup.parse(html)
-            val title = doc.selectFirst("h1.text-headline-medium")?.text()?.trim()
-            if (title?.contains("قیمت تتر") != true) return null
 
-            val priceSpan = doc.selectFirst("span.text-body-large")?.text()?.trim()
-                ?: return null
+            val ths = doc.select("th")
+            var price: String? = null
 
-            val cleaned = normalizeDigits(priceSpan)
+            for (th in ths) {
+                if (th.text().trim() == "آخرین قیمت") {
+                    val td = th.parent()?.selectFirst("td#Close")
+                    price = td?.text()?.trim()
+                    break
+                }
+            }
+
+            if (price == null) return null
+
+            val cleaned = normalizeDigits(price)
                 .replace(",", "")
                 .trim()
 
-            cleaned.toLongOrNull()
+            cleaned.toLongOrNull()   // قیمت سروتمندی = تومان
         } catch (e: Exception) {
             Log.e(TAG, "fetchUsdTehran error: ${e.message}")
             null
@@ -215,7 +226,7 @@ class PriceFetcher {
                 val price = row.selectFirst("td.price")?.text()
 
                 if (name == nameText) {
-                    return parsePriceToLong(price)   // دیگر تقسیم بر ۱۰ نمی‌شود
+                    return parsePriceToLong(price)
                 }
             }
 
@@ -245,7 +256,7 @@ class PriceFetcher {
             val span = doc.selectFirst("span.MuiTypography-root.MuiTypography-TitleStrong.mui-17xixml")
             val raw = parsePriceToLong(span?.text())
 
-            raw?.let { (it / 100) * 100 }   // دو رقم آخر صفر
+            raw?.let { (it / 100) * 100 }
         } catch (e: Exception) {
             Log.e(TAG, "fetchSilver error: ${e.message}")
             null
@@ -255,11 +266,11 @@ class PriceFetcher {
     private fun getAllPrices(): Prices {
 
         val g18raw = fetchGold18()
-        val g18 = g18raw?.let { (it / 1000) * 1000 }   // سه رقم آخر صفر
+        val g18 = g18raw?.let { (it / 1000) * 1000 }
 
         val g24 = g18raw?.let {
             val calc = (it * 1.33332221).toLong()
-            (calc / 1000) * 1000   // سه رقم آخر صفر
+            (calc / 1000) * 1000
         }
 
         return Prices(
